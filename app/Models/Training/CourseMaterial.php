@@ -6,6 +6,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Tonysm\RichTextLaravel\Casts\AsRichTextContent;
 
 class CourseMaterial extends Model
 {
@@ -20,6 +21,7 @@ class CourseMaterial extends Model
     ];
 
     protected $casts = [
+        'material_content' => AsRichTextContent::class,
         'quiz_data' => 'array', // Automatically decode JSON quizzes
     ];
 

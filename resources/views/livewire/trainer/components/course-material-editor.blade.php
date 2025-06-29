@@ -5,6 +5,7 @@ use App\Models\Training\CourseMaterial;
 use App\Models\Training\Course;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use Tonysm\RichTextLaravel\Models\RichText;
 
 
 new class extends Component {
@@ -32,16 +33,28 @@ new class extends Component {
         if ($material) {
             $this->materialTitle = $material->material_name;
             $this->materialDescription = $material->description;
-            $this->materialContent = $material->material_content;
-            $this->editingMaterialId = $material->id;
 
-            $this->dispatch('editor-content-updated', content: $this->materialContent);
+            $richTextContent = $material->material_content;
+
+            // Check if the body of the RichText object is a string (and likely Markdown)
+            if ($richTextContent instanceof \Tonysm\RichTextLaravel\Models\RichText && is_string($richTextContent->body)) {
+                // Convert Markdown to HTML using Laravel's Markdown parser
+                $this->materialContent = \Illuminate\Mail\Markdown::parse($richTextContent->body)->toHtml();
+            } else {
+                // If it's not a RichText object with a string body, or if it's already HTML,
+                // just use toTrixHtml() which will return the HTML body.
+                $this->materialContent = $richTextContent->toTrixHtml();
+            }
+            $this->editingMaterialId = $material->id;
+            // Tell the front-end Trix instance to reload
+            $this->dispatch('editor-content-updated',
+                            content: $this->materialContent);
         }
     }
 
     public function updateMaterial()
     {
-        if (!$this->editingMaterialId) {
+        if (! $this->editingMaterialId) {
             return;
         }
 
@@ -50,10 +63,12 @@ new class extends Component {
             $material->update([
                 'material_name' => $this->materialTitle,
                 'description' => $this->materialDescription,
+                // The incoming HTML string will be cast back
                 'material_content' => $this->materialContent,
             ]);
 
-            session()->flash('message', 'Course material updated successfully!');
+            session()->flash('message',
+                            'Course material updated successfully!');
         }
     }
 
@@ -285,10 +300,45 @@ new class extends Component {
             </div>
 
             <!-- Content Textarea -->
-             <div class="px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
-                <textarea wire:model.lazy="materialContent" placeholder="Material Description"
-                          class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500" rows="3"></textarea>
-            </div>
+            <div class="px-6 py-2 border-b border-gray-200
+            dark:border-gray-700 bg-white dark:bg-gray-900">
+  <div
+    wire:ignore
+    x-data="{
+      content: @entangle('materialContent'),
+      init() {
+        const trix = this.$refs.trix;
+
+        // Sync editor → Livewire
+        trix.addEventListener('trix-change', () => {
+          this.content = trix.value;
+        });
+
+        // Livewire → editor
+        window.addEventListener('editor-content-updated',
+          event => {
+            const newHtml = event.detail.content || '';
+            if (trix.editor.getDocument().toString()
+                !== newHtml) {
+              trix.editor.loadHTML(newHtml);
+            }
+          }
+        );
+      }
+    }"
+  >
+    <x-trix-input
+      x-ref="trix"
+      id="materialContent"
+      name="materialContent"
+      wire:model.defer="materialContent"
+      class="trix-content bg-transparent
+             focus:outline-none text-gray-700
+             dark:text-gray-200 min-h-[300px]
+             prose dark:prose-invert max-w-full"
+    />
+  </div>
+</div>
 
             <div class="p-6">
                 <button wire:click="updateMaterial" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md">
