@@ -3,6 +3,8 @@
 use Livewire\Volt\Component;
 use App\Models\Training\CourseMaterial;
 use App\Models\Training\Course;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 
 
 new class extends Component {
@@ -13,12 +15,46 @@ new class extends Component {
     public string $materialTitle= '';
     public string $materialDescription= '';
     public string $materialContent= '';
-    public int $editingMaterialId;
+    public ?int $editingMaterialId = null;
     public bool $isEditingMaterial= false;
 
     public function mount($course){
         $this->courseMaterials= Course::find($course)->materials ?? [];
+        if ($firstMaterial = $this->courseMaterials->first()) {
+            $this->loadMaterial($firstMaterial->id);
+        }
         $this->courseCreated= true;
+    }
+
+    public function loadMaterial($materialId)
+    {
+        $material = CourseMaterial::find($materialId);
+        if ($material) {
+            $this->materialTitle = $material->material_name;
+            $this->materialDescription = $material->description;
+            $this->materialContent = $material->material_content;
+            $this->editingMaterialId = $material->id;
+
+            $this->dispatch('editor-content-updated', content: $this->materialContent);
+        }
+    }
+
+    public function updateMaterial()
+    {
+        if (!$this->editingMaterialId) {
+            return;
+        }
+
+        $material = CourseMaterial::find($this->editingMaterialId);
+        if ($material) {
+            $material->update([
+                'material_name' => $this->materialTitle,
+                'description' => $this->materialDescription,
+                'material_content' => $this->materialContent,
+            ]);
+
+            session()->flash('message', 'Course material updated successfully!');
+        }
     }
 
     //imported course properties
@@ -105,51 +141,8 @@ new class extends Component {
         }
     }
 
-    public function updateMaterial()
-    {
-        if (!$this->courseCreated || !$this->editingMaterialId) {
-            return;
-        }
-
-        // Validate material data
-        $this->validate([
-            'materialTitle'=> 'required|min:3',
-            'materialDescription'=> 'required',
-            'materialContent'=> 'required',
-        ]);
-
-        // Get the course
-        $course= Course::find($this->courseId);
-
-        // Find the material and update it
-        $material= $course->materials()->find($this->editingMaterialId);
-
-        if ($material) {
-            $material->update([
-                'material_name'=> $this->materialTitle,
-                'description'=> $this->materialDescription,
-                'material_content'=> $this->materialContent,
-            ]);
-
-            // Reset form fields
-            $this->materialTitle= '';
-            $this->materialDescription= '';
-            $this->materialContent= '';
-            $this->materialFile= null;
-            $this->editingMaterialId;
-            $this->isEditingMaterial= false;
-
-            // Refresh the materials list
-            $this->modal('materialModal')->close();
-            $this->courseMaterials= $course->materials;
-
-            session()->flash('message', 'Course material updated successfully!');
-        }
-    }
-
     /**
      * Import course materials from the selected course to the current course
-     *
      * @return void
      */
     public function importMaterial(): void
@@ -228,7 +221,6 @@ new class extends Component {
     /**
      * This method is triggered when a course is selected in the dropdown
      * It loads the materials for preview before import
-     *
      * @param mixed $value The selected course ID
      * @return void
      */
@@ -244,7 +236,6 @@ new class extends Component {
 
     /**
      * Refresh the course materials after import
-     *
      * @return void
      */
     protected function refreshCourseMaterials(): void
@@ -262,10 +253,10 @@ new class extends Component {
             <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Course Materials</h2>
                 @foreach ($courseMaterials as $material)
                 <div class="cursor-pointer border rounded-md p-3 mb-2 hover:bg-blue-50 dark:hover:bg-gray-700"
-                :class="activeMaterialId === {{$material->id}} ? 'bg-blue-100 dark:bg-blue-800 text-blue-900 dark:text-white font-semibold' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200'"
-                @click="loadMaterial({{ $material->id }})">
+                :class="{{$editingMaterialId}} === {{$material->id}} ? 'bg-blue-100 dark:bg-blue-800 text-blue-900 dark:text-white font-semibold' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200'"
+                wire:click="loadMaterial({{ $material->id }})">
 
-               <span x-text="{{ $material->material_name }}">{{ $material->material_name }}</span>
+               <span>{{ $material->material_name }}</span>
            </div>
                 @endforeach
 
@@ -279,70 +270,30 @@ new class extends Component {
         </aside>
 
         <!-- Editor Content -->
-        <div x-data="setupEditor()"
-             x-init="init($refs.editor)"
-             class="flex-1 flex flex-col w-full"
-             wire:ignore>
+        <div class="flex-1 flex flex-col w-full">
 
-            <!-- Top Navigation Bar -->
+            <!-- Title Textarea -->
             <div class="w-fullsticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-w-full">
-                <input type="text" x-model="materialTitle" placeholder="Material Title"
+                <input type="text" wire:model.lazy="materialTitle" placeholder="Material Title"
                        class="w-full text-xl font-semibold bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" />
-                <div class="ml-4 flex gap-2">
-                    <button @click="showPreview = false" :class="!showPreview ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'"
-                        class="px-4 py-1.5 text-sm rounded-md hover:bg-blue-700">Edit</button>
-                    <button @click="showPreview = true" :class="showPreview ? 'bg-blue-600 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-white'"
-                        class="px-4 py-1.5 text-sm rounded-md hover:bg-blue-700">Preview</button>
-                </div>
             </div>
 
-            <!-- Toolbar -->
-            <div class="flex flex-wrap items-center gap-2 p-4 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 w-full" >
-                <div class="relative" x-data="{ open: false }">
-                    <button @click="open = !open" class="px-3 py-1.5 bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-sm rounded-md">Heading ▼</button>
-                    <div x-show="open" @click.outside="open = false" class="absolute z-20 mt-1 w-36 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded shadow-md">
-                        <button @click="setHeading(1); open = false" class="block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Heading 1</button>
-                        <button @click="setHeading(2); open = false" class="block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Heading 2</button>
-                        <button @click="setHeading(3); open = false" class="block w-full px-4 py-2 text-left text-sm hover:bg-gray-100 dark:hover:bg-gray-700">Heading 3</button>
-                    </div>
-                </div>
-
-                <button @click="toggleBold()" class="toolbar-btn">Bold</button>
-                <button @click="toggleItalic()" class="toolbar-btn">Italic</button>
-                <button @click="toggleUnderline()" class="toolbar-btn">Underline</button>
-                <button @click="toggleCode()" class="toolbar-btn">Code</button>
-
-                <button @click="setAlign('left')" class="toolbar-btn">Left</button>
-                <button @click="setAlign('center')" class="toolbar-btn">Center</button>
-                <button @click="setAlign('right')" class="toolbar-btn">Right</button>
-                <button @click="setAlign('justify')" class="toolbar-btn">Justify</button>
-
-                <button @click="$refs.fileInput.click()" class="toolbar-btn bg-blue-100 text-blue-800 dark:bg-blue-700 dark:text-white">Upload Image</button>
-                <input type="file" x-ref="fileInput" @change="uploadImage($event)" class="hidden" accept="image/*">
-
-                <button @click="undo()" class="toolbar-btn">Undo</button>
-                <button @click="redo()" class="toolbar-btn">Redo</button>
+            <!-- Description Textarea -->
+            <div class="px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <textarea wire:model.lazy="materialDescription" placeholder="Material Description"
+                          class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500" rows="3"></textarea>
             </div>
 
-            <!-- Main Content Area -->
-            <div class="flex-1 p-6 relative overflow-auto" @drop.prevent="dropImage($event)" @dragover.prevent>
-                <template x-if="!showPreview">
-                    <div x-ref="editor"
-                        class="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-6 min-h-[500px] overflow-auto focus:outline-none focus:ring-2 focus:ring-blue-500 shadow-md prose dark:prose-invert max-w-full">
-                    </div>
-                </template>
+            <!-- Content Textarea -->
+             <div class="px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
+                <textarea wire:model.lazy="materialContent" placeholder="Material Description"
+                          class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500" rows="3"></textarea>
+            </div>
 
-                <template x-if="showPreview">
-                    <div x-html="editor.getHTML()"
-                        class="bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded-lg p-6 min-h-[500px] overflow-auto prose dark:prose-invert max-w-full">
-                    </div>
-                </template>
-
-                <div x-show="unsavedChanges" class="fixed bottom-6 right-6">
-                    <button @click="saveMaterial" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md">
-                        <span x-text="isSaving ? 'Saving...' : 'Save Material'"></span>
-                    </button>
-                </div>
+            <div class="p-6">
+                <button wire:click="updateMaterial" class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg shadow-md">
+                    Save Material
+                </button>
             </div>
         </div>
     </div>
