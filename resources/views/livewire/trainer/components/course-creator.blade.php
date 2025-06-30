@@ -23,14 +23,30 @@ new class extends Component {
         }
     }
 
-    public function addContentBlock($type)
+    public function addBlock($type)
     {
         $this->contentBlocks[] = ['type' => $type, 'content' => ''];
     }
 
-    public function removeContentBlock($index)
+    public function addListItem()
     {
-        unset($this->contentBlocks[$index]);
+        if (empty($this->contentBlocks) || $this->contentBlocks[array_key_last($this->contentBlocks)]['type'] !== 'list') {
+            $this->contentBlocks[] = ['type' => 'list', 'items' => []];
+        }
+        $this->contentBlocks[array_key_last($this->contentBlocks)]['items'][] = ['type' => 'list-item', 'content' => ''];
+    }
+
+    public function removeContentBlock($blockIndex, $itemIndex = null)
+    {
+        if ($itemIndex !== null) {
+            unset($this->contentBlocks[$blockIndex]['items'][$itemIndex]);
+            $this->contentBlocks[$blockIndex]['items'] = array_values($this->contentBlocks[$blockIndex]['items']);
+            if (empty($this->contentBlocks[$blockIndex]['items'])) {
+                unset($this->contentBlocks[$blockIndex]);
+            }
+        } else {
+            unset($this->contentBlocks[$blockIndex]);
+        }
         $this->contentBlocks = array_values($this->contentBlocks);
     }
 
@@ -71,15 +87,32 @@ new class extends Component {
         $blocks = [];
         $lines = explode("\n", $markdown);
 
+        // If the markdown is empty or only contains a single empty line, return empty blocks
+        if (count($lines) === 1 && $lines[0] === '') {
+            return [];
+        }
+
+        $inList = false;
+
         foreach ($lines as $line) {
             if (str_starts_with($line, '# ')) {
                 $blocks[] = ['type' => 'heading1', 'content' => substr($line, 2)];
+                $inList = false;
             } elseif (str_starts_with($line, '## ')) {
                 $blocks[] = ['type' => 'heading2', 'content' => substr($line, 3)];
+                $inList = false;
             } elseif (str_starts_with($line, '### ')) {
                 $blocks[] = ['type' => 'heading3', 'content' => substr($line, 4)];
+                $inList = false;
+            } elseif (str_starts_with($line, '- ') || str_starts_with($line, '* ')) {
+                if (!$inList) {
+                    $blocks[] = ['type' => 'list', 'items' => []];
+                    $inList = true;
+                }
+                $blocks[array_key_last($blocks)]['items'][] = ['type' => 'list-item', 'content' => substr($line, 2)];
             } else {
                 $blocks[] = ['type' => 'text', 'content' => $line];
+                $inList = false;
             }
         }
 
@@ -99,6 +132,11 @@ new class extends Component {
                     break;
                 case 'heading3':
                     $markdown[] = '### ' . $block['content'];
+                    break;
+                case 'list':
+                    foreach ($block['items'] as $item) {
+                        $markdown[] = '- ' . $item['content'];
+                    }
                     break;
                 case 'text':
                     $markdown[] = $block['content'];
@@ -143,28 +181,55 @@ new class extends Component {
             <!-- Content Blocks -->
             <div class="px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                 @foreach ($contentBlocks as $index => $block)
-                    <div class="flex items-center mb-2">
-                        @if ($block['type'] === 'heading1')
+                    @if ($block['type'] === 'heading1')
+                        <div class="flex items-center mb-2">
                             <input type="text" wire:model="contentBlocks.{{ $index }}.content" class="w-full text-2xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white" placeholder="Heading 1" />
-                        @elseif ($block['type'] === 'heading2')
+                            <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
+                                Remove
+                            </button>
+                        </div>
+                    @elseif ($block['type'] === 'heading2')
+                        <div class="flex items-center mb-2">
                             <input type="text" wire:model="contentBlocks.{{ $index }}.content" class="w-full text-xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white" placeholder="Heading 2" />
-                        @elseif ($block['type'] === 'heading3')
+                            <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
+                                Remove
+                            </button>
+                        </div>
+                    @elseif ($block['type'] === 'heading3')
+                        <div class="flex items-center mb-2">
                             <input type="text" wire:model="contentBlocks.{{ $index }}.content" class="w-full text-lg font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white" placeholder="Heading 3" />
-                        @else
+                            <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
+                                Remove
+                            </button>
+                        </div>
+                    @elseif ($block['type'] === 'list')
+                        <ul class="list-disc list-inside mb-2 pl-4">
+                            @foreach ($block['items'] as $itemIndex => $item)
+                                <li class="flex items-center mb-1">
+                                    <input type="text" wire:model="contentBlocks.{{ $index }}.items.{{ $itemIndex }}.content" class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200" placeholder="List item" />
+                                    <button wire:click="removeContentBlock({{ $index }}, {{ $itemIndex }})" class="ml-2 text-red-500">
+                                        Remove
+                                    </button>
+                                </li>
+                            @endforeach
+                        </ul>
+                    @else
+                        <div class="flex items-center mb-2">
                             <textarea wire:model="contentBlocks.{{ $index }}.content" class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200" placeholder="Start writing..."></textarea>
-                        @endif
-                        <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
-                            Remove
-                        </button>
-                    </div>
+                            <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
+                                Remove
+                            </button>
+                        </div>
+                    @endif
                 @endforeach
             </div>
 
             <div class="p-6">
-                <button wire:click="addContentBlock('heading1')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 1</button>
-                <button wire:click="addContentBlock('heading2')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 2</button>
-                <button wire:click="addContentBlock('heading3')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 3</button>
-                <button wire:click="addContentBlock('text')" class="px-4 py-2 bg-gray-500 text-white rounded">Add Text</button>
+                <button wire:click="addBlock('heading1')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 1</button>
+                <button wire:click="addBlock('heading2')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 2</button>
+                <button wire:click="addBlock('heading3')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 3</button>
+                <button wire:click="addBlock('text')" class="px-4 py-2 bg-gray-500 text-white rounded">Add Text</button>
+                <button wire:click="addListItem()" class="px-4 py-2 bg-purple-500 text-white rounded">Add List Item</button>
                 <button wire:click="updateMaterial" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md">
                     Save Material
                 </button>

@@ -71,12 +71,12 @@ test('users are redirected to the dashboard after successful login', function ()
 
 });
 
-use App\Livewire\Actions\Logout;
+use App\Http\Middleware\VerifyCsrfToken;
 
 test('users can logout', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $component = LivewireVolt::test(Logout::class);
-    $component->call('__invoke');
+    $response = $this->withoutMiddleware(VerifyCsrfToken::class)->post(route('logout'));
+    $response->assertRedirect(route('home'));
     $this->assertGuest();
 });
