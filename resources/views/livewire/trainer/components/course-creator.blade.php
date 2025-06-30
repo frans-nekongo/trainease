@@ -194,32 +194,40 @@ new class extends Component {
     <div class="flex min-h-screen bg-slate-100 dark:bg-slate-900">
         <!-- Sidebar with materials and Add button -->
         <aside class="w-64 border-r dark:border-gray-700 p-6 overflow-y-auto bg-white dark:bg-gray-800">
-            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Course Materials</h2>
+            <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Course Materialhhhs</h2>
             @foreach ($courseMaterials as $material)
                 <div class="cursor-pointer border rounded-md p-3 mb-2 hover:bg-blue-50 dark:hover:bg-gray-700"
-                     :class="{{ $editingMaterialId }} === {{ $material->id }} ? 'bg-blue-100 dark:bg-blue-800 text-blue-900 dark:text-white font-semibold' : 'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200'"
-                     wire:click="loadMaterial({{ $material->id }})">
+                    :class="{{ $editingMaterialId }} === {{ $material->id }} ?
+                        'bg-blue-100 dark:bg-blue-800 text-blue-900 dark:text-white font-semibold' :
+                        'bg-white dark:bg-gray-900 text-gray-700 dark:text-gray-200'"
+                    wire:click="loadMaterial({{ $material->id }})">
                     <span>{{ $material->material_name }}</span>
                 </div>
             @endforeach
+
+            <button @click="addNewMaterial" class="mt-6 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm rounded-md flex items-center justify-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
+                </svg>
+                Add Material
+            </button>
         </aside>
 
         <!-- Editor Content -->
         <div class="flex-1 flex flex-col w-full">
             <!-- Title Textarea -->
-            <div class="w-fullsticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-w-full">
+            <div
+                class="w-fullsticky top-0 z-10 flex items-center justify-between px-6 py-4 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-sm max-w-full">
                 <input type="text" wire:model.lazy="materialTitle" placeholder="Material Title"
-                       class="w-full text-xl font-semibold bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" />
+                    class="w-full text-xl font-semibold bg-transparent focus:outline-none text-gray-900 dark:text-white placeholder-gray-400 dark:placeholder-gray-500" />
             </div>
 
             <!-- Description Textarea -->
             <div class="px-6 py-2 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900">
                 <textarea wire:model.lazy="materialDescription" placeholder="Material Description"
-                          class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
-                          x-data="{ resize: () => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' } }"
-                          x-init="resize()"
-                          @input="resize()"
-                ></textarea>
+                    class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200 placeholder-gray-400 dark:placeholder-gray-500"
+                    x-data="{ resize: () => { $el.style.height = 'auto';
+                            $el.style.height = $el.scrollHeight + 'px' } }" x-init="resize()" @input="resize()"></textarea>
             </div>
 
             <!-- Content Blocks -->
@@ -227,33 +235,33 @@ new class extends Component {
                 @foreach ($contentBlocks as $index => $block)
                     @if ($block['type'] === 'heading1')
                         <div class="flex items-center mb-2">
-                            <input type="text" wire:model="contentBlocks.{{ $index }}.content" class="w-full text-2xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white" placeholder="Heading 1"
-                                   x-data="{ resize: () => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' } }"
-                                   x-init="resize()"
-                                   @input="resize()"
-                            />
+                            <input type="text" wire:model="contentBlocks.{{ $index }}.content"
+                                class="w-full text-2xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white"
+                                placeholder="Heading 1" x-data="{ resize: () => { $el.style.height = 'auto';
+                                        $el.style.height = $el.scrollHeight + 'px' } }" x-init="resize()"
+                                @input="resize()" />
                             <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
                                 Remove
                             </button>
                         </div>
                     @elseif ($block['type'] === 'heading2')
                         <div class="flex items-center mb-2">
-                            <input type="text" wire:model="contentBlocks.{{ $index }}.content" class="w-full text-xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white" placeholder="Heading 2"
-                                   x-data="{ resize: () => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' } }"
-                                   x-init="resize()"
-                                   @input="resize()"
-                            />
+                            <input type="text" wire:model="contentBlocks.{{ $index }}.content"
+                                class="w-full text-xl font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white"
+                                placeholder="Heading 2" x-data="{ resize: () => { $el.style.height = 'auto';
+                                        $el.style.height = $el.scrollHeight + 'px' } }" x-init="resize()"
+                                @input="resize()" />
                             <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
                                 Remove
                             </button>
                         </div>
                     @elseif ($block['type'] === 'heading3')
                         <div class="flex items-center mb-2">
-                            <input type="text" wire:model="contentBlocks.{{ $index }}.content" class="w-full text-lg font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white" placeholder="Heading 3"
-                                   x-data="{ resize: () => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' } }"
-                                   x-init="resize()"
-                                   @input="resize()"
-                            />
+                            <input type="text" wire:model="contentBlocks.{{ $index }}.content"
+                                class="w-full text-lg font-bold bg-transparent focus:outline-none text-gray-900 dark:text-white"
+                                placeholder="Heading 3" x-data="{ resize: () => { $el.style.height = 'auto';
+                                        $el.style.height = $el.scrollHeight + 'px' } }" x-init="resize()"
+                                @input="resize()" />
                             <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
                                 Remove
                             </button>
@@ -262,12 +270,14 @@ new class extends Component {
                         <ul class="list-disc list-inside mb-2 pl-4">
                             @foreach ($block['items'] as $itemIndex => $item)
                                 <li class="flex items-center mb-1">
-                                    <input type="text" wire:model="contentBlocks.{{ $index }}.items.{{ $itemIndex }}.content" class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200" placeholder="List item"
-                                           x-data="{ resize: () => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' } }"
-                                           x-init="resize()"
-                                           @input="resize()"
-                                    />
-                                    <button wire:click="removeContentBlock({{ $index }}, {{ $itemIndex }})" class="ml-2 text-red-500">
+                                    <input type="text"
+                                        wire:model="contentBlocks.{{ $index }}.items.{{ $itemIndex }}.content"
+                                        class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200"
+                                        placeholder="List item" x-data="{ resize: () => { $el.style.height = 'auto';
+                                                $el.style.height = $el.scrollHeight + 'px' } }" x-init="resize()"
+                                        @input="resize()" />
+                                    <button wire:click="removeContentBlock({{ $index }}, {{ $itemIndex }})"
+                                        class="ml-2 text-red-500">
                                         Remove
                                     </button>
                                 </li>
@@ -275,15 +285,21 @@ new class extends Component {
                         </ul>
                     @elseif ($block['type'] === 'video')
                         <div class="flex flex-col mb-2">
-                            <div class="aspect-w-16 aspect-h-9 w-full mb-2 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
+                            <div
+                                class="aspect-w-16 aspect-h-9 w-full mb-2 bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-gray-500 dark:text-gray-400">
                                 @if ($block['youtube_url'])
-                                    <iframe width="560" height="315" src="{{ $block['youtube_url'] }}" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
+                                    <iframe width="560" height="315" src="{{ $block['youtube_url'] }}"
+                                        title="YouTube video player" frameborder="0"
+                                        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+                                        referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>
                                 @else
                                     <p>Paste YouTube link in the input below to see video preview.</p>
                                 @endif
                             </div>
                             <div class="flex items-center">
-                                <input type="text" wire:model="contentBlocks.{{ $index }}.youtube_url" class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200" placeholder="YouTube Embed URL" />
+                                <input type="text" wire:model="contentBlocks.{{ $index }}.youtube_url"
+                                    class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200"
+                                    placeholder="YouTube Embed URL" />
                                 <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
                                     Remove
                                 </button>
@@ -291,11 +307,10 @@ new class extends Component {
                         </div>
                     @else
                         <div class="flex items-center mb-2">
-                            <textarea wire:model="contentBlocks.{{ $index }}.content" class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200" placeholder="Start writing..."
-                                      x-data="{ resize: () => { $el.style.height = 'auto'; $el.style.height = $el.scrollHeight + 'px' } }"
-                                      x-init="resize()"
-                                      @input="resize()"
-                            ></textarea>
+                            <textarea wire:model="contentBlocks.{{ $index }}.content"
+                                class="w-full text-sm bg-transparent focus:outline-none text-gray-700 dark:text-gray-200"
+                                placeholder="Start writing..." x-data="{ resize: () => { $el.style.height = 'auto';
+                                        $el.style.height = $el.scrollHeight + 'px' } }" x-init="resize()" @input="resize()"></textarea>
                             <button wire:click="removeContentBlock({{ $index }})" class="ml-2 text-red-500">
                                 Remove
                             </button>
@@ -304,21 +319,24 @@ new class extends Component {
                 @endforeach
             </div>
 
-            <div class="p-6">
-                <button wire:click="addBlock('heading1')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 1</button>
-                <button wire:click="addBlock('heading2')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 2</button>
-                <button wire:click="addBlock('heading3')" class="px-4 py-2 bg-blue-500 text-white rounded">Add Heading 3</button>
-                <button wire:click="addBlock('text')" class="px-4 py-2 bg-gray-500 text-white rounded">Add Text</button>
-                <button wire:click="addListItem()" class="px-4 py-2 bg-purple-500 text-white rounded">Add List Item</button>
-                <button wire:click="addBlock('video')" class="px-4 py-2 bg-red-500 text-white rounded">Add Video</button>
-                <button type="button" @click="
-                    let youtubeLink = prompt('Paste YouTube video link:');
-                    if (youtubeLink) {
-                        $wire.addVideoBlock(youtubeLink);
-                    }
-                " class="px-4 py-2 bg-red-600 text-white rounded">Paste YouTube Link</button>
-                {{-- <button @click="applyBold()" class="px-4 py-2 bg-yellow-500 text-white rounded">Bold</button> --}}
-                <button wire:click="updateMaterial" class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md">
+            <div
+    class="sticky bottom-0 z-10 p-4 bg-white dark:bg-gray-900 shadow-lg flex flex-wrap items-center justify-between gap-3 border-t border-gray-200 dark:border-gray-700 w-full">
+                <button wire:click="addBlock('heading1')" class="px-4 py-2 bg-blue-500 text-white rounded">H1</button>
+                <button wire:click="addBlock('heading2')" class="px-4 py-2 bg-blue-500 text-white rounded">H2</button>
+                <button wire:click="addBlock('heading3')" class="px-4 py-2 bg-blue-500 text-white rounded">H3</button>
+                <button wire:click="addBlock('text')" class="px-4 py-2 bg-blue-500 text-white rounded">Text</button>
+                <button wire:click="addListItem()" class="px-4 py-2 bg-blue-500 text-white rounded">List Item</button>
+                <button wire:click="addBlock('video')" class="px-4 py-2 bg-blue-500 text-white rounded">Video</button>
+                <button type="button"
+                    @click="
+                                let youtubeLink = prompt('Paste YouTube video link:');
+                                if (youtubeLink) {
+                                    $wire.addVideoBlock(youtubeLink);
+                                }
+                            "
+                    class="px-4 py-2 bg-blue-500 text-white rounded">Paste YouTube Link</button>
+                <button wire:click="updateMaterial"
+                    class="px-5 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg shadow-md">
                     Save Material
                 </button>
             </div>
