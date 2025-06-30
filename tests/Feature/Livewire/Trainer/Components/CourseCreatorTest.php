@@ -149,3 +149,68 @@ it('updates material content, generating markdown from blocks', function () {
     $updatedMaterial = CourseMaterial::find($material->id);
     expect($updatedMaterial->material_content)->toBe("# New Heading\nNew text content.\n- New list item.");
 });
+
+it('can add a video block', function () {
+    $component = Volt::test('trainer.components.course-creator', ['course' => $this->course->id]);
+    $component->call('addBlock', 'video');
+    expect($component->contentBlocks)->toHaveCount(1);
+    expect($component->contentBlocks[0]['type'])->toBe('video');
+    expect($component->contentBlocks[0]['youtube_url'])->toBe('');
+});
+
+it('normalizes YouTube URLs when adding a video block', function () {
+    $component = Volt::test('trainer.components.course-creator', ['course' => $this->course->id]);
+    $youtubeLink = 'https://www.youtube.com/watch?v=dQw4w9WgXcQ';
+    $expectedEmbedUrl = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+
+    $component->call('addVideoBlock', $youtubeLink);
+    expect($component->contentBlocks)->toHaveCount(1);
+    expect($component->contentBlocks[0]['type'])->toBe('video');
+    expect($component->contentBlocks[0]['youtube_url'])->toBe($expectedEmbedUrl);
+
+    $component = Volt::test('trainer.components.course-creator', ['course' => $this->course->id]);
+    $youtubeLink = 'https://youtu.be/dQw4w9WgXcQ';
+    $expectedEmbedUrl = 'https://www.youtube.com/embed/dQw4w9WgXcQ';
+
+    $component->call('addVideoBlock', $youtubeLink);
+    expect($component->contentBlocks)->toHaveCount(1);
+    expect($component->contentBlocks[0]['type'])->toBe('video');
+    expect($component->contentBlocks[0]['youtube_url'])->toBe($expectedEmbedUrl);
+});
+
+it('loads existing material content with video and parses it into blocks', function () {
+    $youtubeEmbed = '<iframe width="560" height="315" src="https://www.youtube.com/embed/testvideo123" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+    $markdownContent = "# Heading One\n" . $youtubeEmbed . "\nSome text content.";
+    $material = CourseMaterial::factory()->createOne([
+        'course_id' => $this->course->id,
+        'material_content' => $markdownContent,
+    ]);
+
+    $component = Volt::test('trainer.components.course-creator', ['course' => $this->course->id]);
+    $component->call('loadMaterial', $material->id);
+
+    expect($component->contentBlocks)->toHaveCount(3);
+    expect($component->contentBlocks[0]['type'])->toBe('heading1');
+    expect($component->contentBlocks[1]['type'])->toBe('video');
+    expect($component->contentBlocks[1]['youtube_url'])->toBe('https://www.youtube.com/embed/testvideo123');
+    expect($component->contentBlocks[2]['type'])->toBe('text');
+});
+
+it('updates material content, generating markdown from video blocks', function () {
+    $material = CourseMaterial::factory()->createOne([
+        'course_id' => $this->course->id,
+        'material_content' => '',
+    ]);
+
+    $component = Volt::test('trainer.components.course-creator', ['course' => $this->course->id]);
+    $component->call('loadMaterial', $material->id);
+
+    $component->call('addBlock', 'video');
+    $component->set('contentBlocks.0.youtube_url', 'https://www.youtube.com/embed/newvideo456');
+
+    $component->call('updateMaterial');
+
+    $updatedMaterial = CourseMaterial::find($material->id);
+    $expectedMarkdown = '<iframe width="560" height="315" src="https://www.youtube.com/embed/newvideo456" title="YouTube video player" frameborder="0" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share" referrerpolicy="strict-origin-when-cross-origin" allowfullscreen></iframe>';
+    expect($updatedMaterial->material_content)->toBe($expectedMarkdown);
+});
