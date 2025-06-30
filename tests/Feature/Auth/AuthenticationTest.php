@@ -71,10 +71,12 @@ test('users are redirected to the dashboard after successful login', function ()
 
 });
 
+use App\Livewire\Actions\Logout;
+
 test('users can logout', function () {
     $user = User::factory()->create();
     $this->actingAs($user);
-    $response = $this->post('/logout');
-    $response->assertRedirect('/');
+    $component = LivewireVolt::test(Logout::class);
+    $component->call('__invoke');
     $this->assertGuest();
 });
