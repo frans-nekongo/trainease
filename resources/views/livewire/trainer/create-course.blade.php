@@ -431,7 +431,7 @@ new #[Layout('components.layouts.app.header')] class extends Component {
             <div x-show="$wire.activeTab=== 'materials' && $wire.courseCreated"
                 class="flex m-0 border h-screen w-full bg-slate-100 dark:bg-slate-900 rounded-l-xl" x-transition>
 
-                @livewire('trainer.components.course-material-editor', [
+                @livewire('trainer.components.course-creator', [
                     'course' => $courseId,
                 ])
 
